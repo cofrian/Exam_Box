@@ -1,0 +1,43 @@
+# ExamBox - Docker Compose para desarrollo local
+# Versión simplificada para Windows (sin restricciones de red)
+
+version: '3.8'
+
+services:
+  exam-manager:
+    build:
+      context: ./exam-manager
+      dockerfile: Dockerfile
+    container_name: exambox-manager
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/exams:/app/data/exams
+      - ./data/materials:/app/data/materials
+      - ./data/work:/app/data/work
+      - ./data/submissions:/app/data/submissions
+      - ./data/requirements:/app/data/requirements
+      - ./data/db:/app/data
+      # Docker socket - en Windows usar pipe nombrado
+      - //var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DATA_PATH=/app/data
+      - HOST_DATA_PATH=/host_mnt/c/Users/SERGIO/Documents/docker_ipd/data
+      - DATABASE_URL=sqlite+aiosqlite:///./data/exambox.db
+      - EXAM_MANAGER_URL=http://exam-manager:8000
+    networks:
+      - exambox_network
+    restart: unless-stopped
+
+  student-image-builder:
+    build:
+      context: ./student-image
+      dockerfile: Dockerfile
+    image: exambox-student:latest
+    container_name: exambox-student-builder
+    command: ["echo", "Student image built"]
+
+networks:
+  exambox_network:
+    driver: bridge
+    name: exambox_exam_network

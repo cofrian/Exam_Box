@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExamBox - Sistema de Exámenes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+        }
+        .card-feature {
+            transition: transform 0.3s;
+        }
+        .card-feature:hover {
+            transform: translateY(-5px);
+        }
+        .icon-large {
+            font-size: 3rem;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-box"></i> ExamBox
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/professor/exams">Profesor</a>
+                <a class="nav-link" href="/student">Alumno</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero text-center">
+        <div class="container">
+            <h1 class="display-4 fw-bold mb-4">
+                <i class="bi bi-box"></i> ExamBox
+            </h1>
+            <p class="lead mb-4">
+                Sistema de exámenes en red local con entornos Docker aislados
+            </p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/professor/exams" class="btn btn-light btn-lg">
+                    <i class="bi bi-person-badge"></i> Panel del Profesor
+                </a>
+                <a href="/student" class="btn btn-outline-light btn-lg">
+                    <i class="bi bi-mortarboard"></i> Acceso Alumno
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-5">Características principales</h2>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card card-feature h-100 text-center p-4">
+                        <i class="bi bi-shield-lock icon-large mb-3"></i>
+                        <h5>Entornos Aislados</h5>
+                        <p class="text-muted">Cada alumno trabaja en su propio contenedor Docker con JupyterLab, completamente aislado.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-feature h-100 text-center p-4">
+                        <i class="bi bi-clock-history icon-large mb-3"></i>
+                        <h5>Control de Tiempo</h5>
+                        <p class="text-muted">Temporizador automático, extensión de tiempo individual y entrega automática al finalizar.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-feature h-100 text-center p-4">
+                        <i class="bi bi-unlock icon-large mb-3"></i>
+                        <h5>Desbloqueo Progresivo</h5>
+                        <p class="text-muted">El profesor controla qué preguntas están disponibles para cada alumno.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-feature h-100 text-center p-4">
+                        <i class="bi bi-cloud-upload icon-large mb-3"></i>
+                        <h5>Entrega Centralizada</h5>
+                        <p class="text-muted">Las entregas se guardan automáticamente en el servidor del profesor.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-feature h-100 text-center p-4">
+                        <i class="bi bi-diagram-3 icon-large mb-3"></i>
+                        <h5>Red LAN</h5>
+                        <p class="text-muted">Funciona en red local sin acceso a Internet para los alumnos.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card card-feature h-100 text-center p-4">
+                        <i class="bi bi-speedometer2 icon-large mb-3"></i>
+                        <h5>Dashboard en Vivo</h5>
+                        <p class="text-muted">Monitorea el progreso de todos los alumnos en tiempo real.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">ExamBox - Sistema de Exámenes Docker &copy; 2024</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

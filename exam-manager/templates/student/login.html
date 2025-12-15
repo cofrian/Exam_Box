@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Alumno - ExamBox</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .login-card {
+            max-width: 450px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card login-card shadow-lg">
+            <div class="card-header bg-primary text-white text-center py-4">
+                <h3><i class="bi bi-mortarboard"></i> ExamBox</h3>
+                <p class="mb-0">Acceso de Alumno</p>
+            </div>
+            <div class="card-body p-4">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Selecciona el Examen</label>
+                        <select class="form-select" name="exam_id" required>
+                            <option value="">-- Selecciona --</option>
+                            {% for exam in exams %}
+                            <option value="{{ exam.id }}">{{ exam.name }} ({{ exam.subject }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ID de Alumno</label>
+                        <input type="text" class="form-control" name="student_id" 
+                               placeholder="ej: A12345" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nombre Completo</label>
+                        <input type="text" class="form-control" name="student_name" 
+                               placeholder="ej: Juan García López" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="bi bi-box-arrow-in-right"></i> Entrar al Examen
+                    </button>
+                </form>
+                
+                {% if exams|length == 0 %}
+                <div class="alert alert-warning mt-3">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    No hay exámenes activos en este momento.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {
+                exam_id: parseInt(formData.get('exam_id')),
+                student_id: formData.get('student_id').trim(),
+                student_name: formData.get('student_name').trim()
+            };
+            
+            try {
+                // Register student
+                const regResponse = await fetch('/api/students/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (!regResponse.ok) {
+                    const error = await regResponse.json();
+                    alert('Error: ' + error.detail);
+                    return;
+                }
+                
+                const session = await regResponse.json();
+                
+                // Redirect to exam page
+                window.location.href = `/student/exam/${session.id}`;
+                
+            } catch (err) {
+                alert('Error de conexión: ' + err.message);
+            }
+        });
+    </script>
+</body>
+</html>

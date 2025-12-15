@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Exámenes - ExamBox</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-box"></i> ExamBox
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link active" href="/professor/exams">Exámenes</a>
+                <a class="nav-link" href="/professor/submissions">Entregas</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-journal-text"></i> Gestión de Exámenes</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createExamModal">
+                <i class="bi bi-plus-lg"></i> Crear Examen
+            </button>
+        </div>
+
+        <!-- Lista de exámenes -->
+        <div class="row" id="examsList">
+            {% for exam in exams %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">{{ exam.name }}</span>
+                        {% if exam.is_active == true %}
+                        <span class="badge bg-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Asignatura:</strong> {{ exam.subject }}</p>
+                        <p><strong>Duración:</strong> {{ exam.duration_minutes }} minutos</p>
+                        <p><strong>Preguntas:</strong> {{ exam.num_questions }}</p>
+                        <p><strong>Perfil:</strong> {{ exam.profile }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <div class="btn-group w-100 mb-2" role="group">
+                            {% if exam.is_active == true %}
+                            <button class="btn btn-warning btn-sm" data-exam-id="{{ exam.id }}" data-action="deactivate" onclick="toggleExam(this.dataset.examId, false)">
+                                <i class="bi bi-pause"></i> Desactivar
+                            </button>
+                            {% else %}
+                            <button class="btn btn-success btn-sm" data-exam-id="{{ exam.id }}" data-action="activate" onclick="toggleExam(this.dataset.examId, true)">
+                                <i class="bi bi-play"></i> Activar
+                            </button>
+                            {% endif %}
+                            <a href="/professor/dashboard/{{ exam.id }}" class="btn btn-primary btn-sm">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </div>
+                        <a href="/professor/exam/{{ exam.id }}/editor" class="btn btn-outline-secondary btn-sm w-100">
+                            <i class="bi bi-pencil-square"></i> Editar Preguntas
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12">
+                <div class="alert alert-info">
+                    No hay exámenes creados. Haz clic en "Crear Examen" para comenzar.
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Modal Crear Examen -->
+    <div class="modal fade" id="createExamModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-plus-circle"></i> Crear Nuevo Examen</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="createExamForm">
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Nombre del Examen *</label>
+                                <input type="text" class="form-control" name="name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Asignatura *</label>
+                                <input type="text" class="form-control" name="subject" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Duración (minutos) *</label>
+                                <input type="number" class="form-control" name="duration_minutes" value="60" min="5" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Número de Preguntas *</label>
+                                <input type="number" class="form-control" name="num_questions" value="3" min="1" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Perfil de Entorno</label>
+                                <select class="form-select" name="profile">
+                                    <option value="jupyter">Solo JupyterLab</option>
+                                    <option value="desktop">Ubuntu + Jupyter (noVNC)</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Carpeta de Plantilla</label>
+                                <input type="text" class="form-control" name="template_folder" placeholder="ej: examen_python_2024">
+                                <small class="text-muted">Nombre de la carpeta en /exams/ que contiene Q1, Q2, etc.</small>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Carpeta de Materiales</label>
+                                <input type="text" class="form-control" name="materials_folder" placeholder="ej: apuntes_python">
+                                <small class="text-muted">Nombre de la carpeta en /materials/ (se monta read-only)</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Crear Examen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Crear examen
+        document.getElementById('createExamForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData);
+            
+            // Convert numbers
+            data.duration_minutes = parseInt(data.duration_minutes);
+            data.num_questions = parseInt(data.num_questions);
+            
+            try {
+                const response = await fetch('/api/exams', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.detail);
+                }
+            } catch (err) {
+                alert('Error al crear examen: ' + err.message);
+            }
+        });
+
+        // Activar/Desactivar examen
+        async function toggleExam(examId, activate) {
+            const endpoint = activate ? 'activate' : 'deactivate';
+            try {
+                const response = await fetch(`/api/exams/${examId}/${endpoint}`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    location.reload();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.detail);
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Database
+*.db
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Data directories (keep structure but ignore contents)
+data/db/*
+data/work/*
+data/submissions/*
+!data/db/.gitkeep
+!data/work/.gitkeep
+!data/submissions/.gitkeep
+
+# Keep exam templates and materials
+!data/exams/
+!data/materials/
+
+# Logs
+*.log

@@ -1,0 +1,56 @@
+# ExamBox - Versión Simplificada
+# Sistema de exámenes con JupyterLab integrado
+
+services:
+  # ==========================================
+  # Exam Manager - FastAPI Backend + UI
+  # ==========================================
+  exam-manager:
+    build:
+      context: ./exam-manager
+      dockerfile: Dockerfile
+    container_name: exambox-manager
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./data/exams:/app/data/exams
+      - ./data/materials:/app/data/materials
+      - ./data/work:/app/data/work
+      - ./data/submissions:/app/data/submissions
+      - ./data/db:/app/data
+    environment:
+      - DATA_PATH=/app/data
+      - DATABASE_URL=sqlite+aiosqlite:///./data/exambox.db
+      - JUPYTER_URL=http://localhost:8888
+    networks:
+      - exam_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # ==========================================
+  # JupyterLab - Entorno del Estudiante
+  # ==========================================
+  jupyter:
+    build:
+      context: ./student-image
+      dockerfile: Dockerfile
+    container_name: exambox-jupyter
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./data/work:/home/student/work
+      - ./data/exams:/home/student/exams:ro
+      - ./data/materials:/home/student/materials:ro
+    environment:
+      - JUPYTER_TOKEN=exambox123
+    networks:
+      - exam_network
+    restart: unless-stopped
+
+networks:
+  exam_network:
+    driver: bridge

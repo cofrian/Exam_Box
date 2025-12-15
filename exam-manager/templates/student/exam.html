@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examen - {{ exam.name }} - ExamBox</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .timer-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        .timer-warning { color: #ffc107; }
+        .timer-critical { color: #dc3545; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .status-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+            background: #212529;
+            padding: 10px 20px;
+        }
+        .main-content {
+            margin-top: 100px;
+        }
+        .jupyter-frame {
+            width: 100%;
+            height: calc(100vh - 150px);
+            border: none;
+            border-radius: 8px;
+        }
+        .question-nav {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .question-nav .btn {
+            min-width: 50px;
+        }
+    </style>
+</head>
+<body class="bg-light" 
+      data-session-id="{{ session.id }}" 
+      data-num-questions="{{ exam.num_questions }}"
+      data-session-status="{{ session.status }}"
+      {% if session.jupyter_port %}data-jupyter-port="{{ session.jupyter_port }}"{% endif %}
+      {% if session.jupyter_token %}data-jupyter-token="{{ session.jupyter_token }}"{% endif %}
+      {% if session.end_time %}data-end-time="{{ session.end_time.isoformat() }}"{% endif %}
+      {% if session.unlocked_questions %}data-unlocked-questions="{{ session.unlocked_questions }}"{% endif %}
+>
+    <!-- Status Bar -->
+    <div class="status-bar d-flex justify-content-between align-items-center text-white">
+        <div>
+            <strong><i class="bi bi-person"></i> {{ session.student_name }}</strong>
+            <span class="ms-3 text-muted">{{ exam.name }} - {{ exam.subject }}</span>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="question-nav" id="questionNav">
+                <!-- Se llena dinámicamente -->
+            </div>
+            <div class="timer-display" id="timerDisplay">--:--:--</div>
+            <button class="btn btn-success btn-lg" onclick="submitExam()" id="submitBtn">
+                <i class="bi bi-send"></i> Entregar
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div id="notStarted" class="container text-center py-5">
+            <div class="card shadow-lg mx-auto" style="max-width: 500px;">
+                <div class="card-body p-5">
+                    <i class="bi bi-play-circle display-1 text-primary mb-4"></i>
+                    <h3>¿Listo para comenzar?</h3>
+                    <p class="text-muted">
+                        Examen: <strong>{{ exam.name }}</strong><br>
+                        Duración: <strong>{{ exam.duration_minutes }} minutos</strong><br>
+                        Preguntas: <strong>{{ exam.num_questions }}</strong>
+                    </p>
+                    <button class="btn btn-primary btn-lg" onclick="startExam()">
+                        <i class="bi bi-play-fill"></i> Comenzar Examen
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="examContent" class="container-fluid px-4" style="display: none;">
+            <iframe id="jupyterFrame" class="jupyter-frame" src="about:blank"></iframe>
+        </div>
+        
+        <div id="submittedContent" class="container text-center py-5" style="display: none;">
+            <div class="card shadow-lg mx-auto" style="max-width: 500px;">
+                <div class="card-body p-5">
+                    <i class="bi bi-check-circle display-1 text-success mb-4"></i>
+                    <h3>¡Examen Entregado!</h3>
+                    <p class="text-muted">
+                        Tu examen ha sido entregado correctamente.<br>
+                        Puedes cerrar esta ventana.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmación -->
+    <div class="modal fade" id="submitModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmar Entrega</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>¿Estás seguro de que quieres entregar tu examen?</p>
+                    <p class="text-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Esta acción no se puede deshacer.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-success" onclick="confirmSubmit()">
+                        <i class="bi bi-send"></i> Confirmar Entrega
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Obtener datos del body
+        const body = document.body;
+        const sessionId = parseInt(body.dataset.sessionId);
+        const numQuestions = parseInt(body.dataset.numQuestions);
+        let status = body.dataset.sessionStatus;
+        let jupyterUrl = null;
+        let endTime = null;
+        let timerInterval = null;
+        
+        // Initial state check
+        if (status === 'in_progress') {
+            const jupyterPort = body.dataset.jupyterPort;
+            const jupyterToken = body.dataset.jupyterToken;
+            if (jupyterPort && jupyterToken) {
+                jupyterUrl = `http://localhost:${jupyterPort}/lab?token=${jupyterToken}`;
+            }
+            if (body.dataset.endTime) {
+                endTime = new Date(body.dataset.endTime);
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('notStarted').style.display = 
+                status === 'registered' ? 'block' : 'none';
+            document.getElementById('examContent').style.display = 
+                status === 'in_progress' ? 'block' : 'none';
+            document.getElementById('submittedContent').style.display = 
+                status === 'submitted' ? 'block' : 'none';
+            
+            if (status === 'in_progress' && jupyterUrl) {
+                document.getElementById('jupyterFrame').src = jupyterUrl;
+                startTimer();
+            }
+        }
+        
+        function updateQuestionNav(unlocked) {
+            const nav = document.getElementById('questionNav');
+            nav.innerHTML = '';
+            for (let i = 1; i <= numQuestions; i++) {
+                const isUnlocked = i <= unlocked;
+                nav.innerHTML += `
+                    <span class="badge ${isUnlocked ? 'bg-success' : 'bg-secondary'} p-2">
+                        Q${i} ${isUnlocked ? '<i class="bi bi-unlock"></i>' : '<i class="bi bi-lock"></i>'}
+                    </span>
+                `;
+            }
+        }
+        
+        function startTimer() {
+            if (!endTime) return;
+            
+            timerInterval = setInterval(() => {
+                const now = new Date();
+                const diff = endTime - now;
+                
+                if (diff <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timerDisplay').innerHTML = 
+                        '<span class="timer-critical">00:00:00</span>';
+                    autoSubmit();
+                    return;
+                }
+                
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                
+                const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                
+                let timerClass = '';
+                if (diff < 300000) timerClass = 'timer-critical';
+                else if (diff < 600000) timerClass = 'timer-warning';
+                
+                document.getElementById('timerDisplay').innerHTML = 
+                    `<span class="${timerClass}">${timeStr}</span>`;
+            }, 1000);
+        }
+        
+        async function startExam() {
+            try {
+                const response = await fetch(`/api/students/${sessionId}/start`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert('Error: ' + error.detail);
+                    return;
+                }
+                
+                const data = await response.json();
+                status = 'in_progress';
+                jupyterUrl = data.jupyter_url;
+                endTime = new Date(data.end_time);
+                
+                updateUI();
+                updateQuestionNav(1);
+                
+            } catch (err) {
+                alert('Error al iniciar examen: ' + err.message);
+            }
+        }
+        
+        function submitExam() {
+            const modal = new bootstrap.Modal(document.getElementById('submitModal'));
+            modal.show();
+        }
+        
+        async function confirmSubmit() {
+            try {
+                const response = await fetch(`/api/submit/${sessionId}`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    alert('Error: ' + error.detail);
+                    return;
+                }
+                
+                status = 'submitted';
+                clearInterval(timerInterval);
+                bootstrap.Modal.getInstance(document.getElementById('submitModal')).hide();
+                updateUI();
+                
+            } catch (err) {
+                alert('Error al entregar: ' + err.message);
+            }
+        }
+        
+        async function autoSubmit() {
+            alert('¡El tiempo ha terminado! Tu examen será entregado automáticamente.');
+            await confirmSubmit();
+        }
+        
+        // Poll for status updates (unlocked questions, time changes)
+        async function pollStatus() {
+            if (status !== 'in_progress') return;
+            
+            try {
+                const response = await fetch(`/api/students/${sessionId}/status`);
+                const data = await response.json();
+                
+                if (data.status === 'submitted') {
+                    status = 'submitted';
+                    clearInterval(timerInterval);
+                    updateUI();
+                    return;
+                }
+                
+                updateQuestionNav(data.unlocked_questions);
+                
+                // Update end time if changed (professor added time)
+                if (data.time_remaining_seconds !== undefined) {
+                    const newEndTime = new Date(Date.now() + data.time_remaining_seconds * 1000);
+                    if (Math.abs(newEndTime - endTime) > 5000) {
+                        endTime = newEndTime;
+                    }
+                }
+                
+            } catch (err) {
+                console.error('Poll error:', err);
+            }
+        }
+        
+        // Initialize
+        updateUI();
+        if (status === 'in_progress') {
+            const unlockedQuestions = parseInt(body.dataset.unlockedQuestions || '1');
+            updateQuestionNav(unlockedQuestions);
+        }
+        
+        // Poll every 10 seconds
+        setInterval(pollStatus, 10000);
+    </script>
+</body>
+</html>

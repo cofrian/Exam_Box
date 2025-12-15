@@ -1,0 +1,10 @@
+/* ExamBox Custom Styles */
+
+:root {
+    --exambox-primary: #667eea;
+    --exambox-secondary: #764ba2;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, var(--exambox-primary) 0%, var(--exambox-secondary) 100%);
+}
