@@ -1,7 +1,14 @@
-# ExamBox - Docker Compose para desarrollo local
-# Versión simplificada para Windows (sin restricciones de red)
-
-version: '3.8'
+# ExamBox - development stack
+#
+# Variant of docker-compose.yml that mounts the Docker socket into the exam
+# manager and builds the student image, so the manager can provision one
+# container per student (see docker_manager.py and the Roadmap in README.md).
+#
+# Requires HOST_DATA_PATH in .env: the absolute host path to this repo's data/
+# directory. Bind mounts are resolved by the host daemon, so it cannot be
+# inferred from inside the container.
+#
+#   docker compose -f docker-compose.dev.yml up --build
 
 services:
   exam-manager:
@@ -18,13 +25,15 @@ services:
       - ./data/submissions:/app/data/submissions
       - ./data/requirements:/app/data/requirements
       - ./data/db:/app/data
-      # Docker socket - en Windows usar pipe nombrado
+      # Docker socket. The leading // is a Windows/Git-Bash path-mangling guard
+      # and is harmless on Linux and macOS.
       - //var/run/docker.sock:/var/run/docker.sock
     environment:
       - DATA_PATH=/app/data
-      - HOST_DATA_PATH=/host_mnt/c/Users/SERGIO/Documents/docker_ipd/data
+      - HOST_DATA_PATH=${HOST_DATA_PATH:?set HOST_DATA_PATH in .env to the host path of this repo/data}
       - DATABASE_URL=sqlite+aiosqlite:///./data/exambox.db
       - EXAM_MANAGER_URL=http://exam-manager:8000
+      - EXAM_NETWORK=exambox_exam_network
     networks:
       - exambox_network
     restart: unless-stopped

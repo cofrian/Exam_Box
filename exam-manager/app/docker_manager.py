@@ -60,9 +60,16 @@ async def create_student_container(
     jupyter_token = secrets.token_hex(16)
     jupyter_port = get_available_port()
     
-    # Base paths - use Windows path format for Docker Desktop
-    # HOST_DATA_PATH should be like: C:/Users/SERGIO/Documents/docker_ipd/data
-    host_base_path = os.getenv("HOST_DATA_PATH", "C:/Users/SERGIO/Documents/docker_ipd/data")
+    # Bind mounts are resolved by the host daemon, so paths must be host paths,
+    # not the container-local DATA_PATH. There is no sane default: only the host
+    # knows where this repository lives.
+    host_base_path = os.getenv("HOST_DATA_PATH")
+    if not host_base_path:
+        raise RuntimeError(
+            "HOST_DATA_PATH is not set. It must point to this repository's data/ "
+            "directory on the host machine (see .env.example)."
+        )
+    host_base_path = host_base_path.rstrip("/")
     
     # Container name - sanitize student_id
     safe_student_id = student_id.lower().replace(' ', '-').replace('/', '-')
@@ -113,7 +120,7 @@ async def create_student_container(
             environment=environment,
             ports={"8888/tcp": jupyter_port},
             volumes=volumes,
-            network="docker_ipd_exam_network",
+            network=os.getenv("EXAM_NETWORK", "exambox_exam_network"),
             mem_limit="1g",
             cpu_period=100000,
             cpu_quota=50000,  # 50% CPU limit

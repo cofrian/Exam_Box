@@ -21,7 +21,9 @@ services:
     environment:
       - DATA_PATH=/app/data
       - DATABASE_URL=sqlite+aiosqlite:///./data/exambox.db
-      - JUPYTER_URL=http://localhost:8888
+      # Handed to students' browsers: set to the host's LAN IP when serving
+      # students on other machines.
+      - JUPYTER_URL=${JUPYTER_URL:-http://localhost:8888}
     networks:
       - exam_network
     healthcheck:
@@ -46,7 +48,7 @@ services:
       - ./data/exams:/home/student/exams:ro
       - ./data/materials:/home/student/materials:ro
     environment:
-      - JUPYTER_TOKEN=exambox123
+      - JUPYTER_TOKEN=${JUPYTER_TOKEN:-exambox123}
     networks:
       - exam_network
     restart: unless-stopped
